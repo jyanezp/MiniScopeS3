@@ -1,53 +1,150 @@
-| Supported Targets | ESP32 | ESP32-C2 | ESP32-C3 | ESP32-C5 | ESP32-C6 | ESP32-C61 | ESP32-H2 | ESP32-H21 | ESP32-H4 | ESP32-P4 | ESP32-S2 | ESP32-S3 | ESP32-S31 | Linux |
-| ----------------- | ----- | -------- | -------- | -------- | -------- | --------- | -------- | --------- | -------- | -------- | -------- | -------- | --------- | ----- |
+# MiniScopeS3
 
-# Hello World Example
+**Mini osciloscopio digital basado en ESP32-S3 y una pantalla OLED.**
 
-Starts a FreeRTOS task to print "Hello World".
+MiniScopeS3 adquiere una señal analógica con el ADC del ESP32-S3, representa la forma de onda en una pantalla OLED SSD1306 de 128 × 64 y muestra su voltaje pico a pico, frecuencia y escala temporal.
 
-(See the README.md file in the upper level 'examples' directory for more information about examples.)
+[![Plataforma](https://img.shields.io/badge/Plataforma-ESP32--S3-blue)](https://www.espressif.com/en/products/socs/esp32-s3)
+[![Framework](https://img.shields.io/badge/Framework-ESP--IDF-red)](https://docs.espressif.com/projects/esp-idf/)
+[![Lenguaje](https://img.shields.io/badge/Lenguaje-C-blue)](main/hello_world_main.c)
 
-## How to use example
+## Funciones
 
-Follow detailed instructions provided specifically for this example.
+- Visualización gráfica de la señal en una OLED de 128 × 64.
+- Entrada analógica mediante ADC1.
+- Medición calibrada de voltaje.
+- Cálculo de voltaje pico a pico.
+- Detección de frecuencia por flancos ascendentes.
+- Dos modos de operación:
+  - **Rollo:** muestreo continuo para señales lentas.
+  - **Disparo:** captura, detección de flancos y medición para señales rápidas.
+- Cambio de escala temporal con el botón BOOT.
+- Escalas disponibles desde `100 µs` hasta `100 ms` por muestra.
+- Malla y cursor visual de la forma de onda en la pantalla.
 
-Select the instructions depending on Espressif chip installed on your development board:
+## Hardware
 
-- [ESP32 Getting Started Guide](https://docs.espressif.com/projects/esp-idf/en/stable/get-started/index.html)
-- [ESP32-S2 Getting Started Guide](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s2/get-started/index.html)
+| Componente | Configuración |
+|---|---|
+| Microcontrolador | ESP32-S3 |
+| Pantalla | OLED monocromática SSD1306, 128 × 64 |
+| Protocolo de pantalla | I²C |
+| Entrada analógica | ADC1, canal 3 (GPIO4) |
+| Voltaje máximo recomendado | 3,3 V |
 
+### Conexiones
 
-## Example folder contents
+| Señal | GPIO ESP32-S3 |
+|---|---:|
+| OLED SDA | 8 |
+| OLED SCL | 9 |
+| Entrada ADC | 4 |
+| Cambio de escala | 0 (BOOT) |
 
-The project **hello_world** contains one source file in C language [hello_world_main.c](main/hello_world_main.c). The file is located in folder [main](main).
+> [!IMPORTANT]
+> La señal de entrada debe mantenerse dentro del rango seguro del ADC: **0 a 3,3 V**. No conectes directamente tensiones superiores ni señales provenientes de la red eléctrica. Para medir señales adicionales utiliza división resistiva, acoplamiento y protección adecuados.
 
-ESP-IDF projects are built using CMake. The project build configuration is contained in `CMakeLists.txt` files that provide set of directives and instructions describing the project's source files and targets (executable, library, or both).
+La dirección I²C predeterminada es `0x3C`; el firmware también contempla `0x3D` como referencia, aunque el código realiza la comunicación con `0x3C`.
 
-Below is short explanation of remaining files in the project folder.
+## Uso
 
+1. Conecta la pantalla OLED a los pines SDA/SCL indicados.
+2. Conecta la señal a medir al GPIO4.
+3. Compila y programa el proyecto en un ESP32-S3.
+4. Presiona el botón **BOOT** para recorrer las escalas temporales.
+
+El firmware selecciona automáticamente el modo de disparo para escalas menores a `30 ms` y el modo rollo a partir de `30 ms`.
+
+## Compilación
+
+Requisitos:
+
+- ESP-IDF configurado con soporte para tu plataforma.
+- Python y CMake incluidos en el entorno de ESP-IDF.
+- Un ESP32-S3 conectado por USB.
+
+Desde la raíz del proyecto:
+
+```bash
+idf.py set-target esp32s3
+idf.py build
+idf.py -p PORT flash monitor
 ```
-├── CMakeLists.txt
-├── pytest_hello_world.py      Python script used for automated testing
-├── main
-│   ├── CMakeLists.txt
-│   └── hello_world_main.c
-└── README.md                  This is the file you are currently reading
+
+Ejemplo sustituyendo `PORT` por el puerto serie correspondiente:
+
+```bash
+idf.py -p /dev/ttyUSB0 flash monitor
 ```
 
-For more information on structure and contents of ESP-IDF projects, please refer to Section [Build System](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/build-system.html) of the ESP-IDF Programming Guide.
+En Windows puede ser, por ejemplo:
 
-## Troubleshooting
+```powershell
+idf.py -p COM5 flash monitor
+```
 
-* Program upload failure
+Para salir del monitor serie, presiona `Ctrl+]`.
 
-    * Hardware connection is not correct: run `idf.py -p PORT monitor`, and reboot your board to see if there are any output logs.
-    * The baud rate for downloading is too high: lower your baud rate in the `menuconfig` menu, and try again.
+## Entorno de desarrollo
 
-## Technical support and feedback
+El repositorio incluye configuración para VS Code y un contenedor de desarrollo basado en la imagen oficial `espressif/idf`. Para usarlo:
 
-Please use the following feedback channels:
+1. Instala Docker y la extensión **Dev Containers** de VS Code.
+2. Abre el repositorio en VS Code.
+3. Selecciona **Dev Containers: Reopen in Container**.
+4. Compila con:
 
-* For technical queries, go to the [esp32.com](https://esp32.com/) forum
-* For a feature request or bug report, create a [GitHub issue](https://github.com/espressif/esp-idf/issues)
+```bash
+idf.py set-target esp32s3
+idf.py build
+```
 
-We will get back to you as soon as possible.
+## Estructura
+
+```text
+.
+├── CMakeLists.txt          Configuración principal del proyecto ESP-IDF
+├── main/
+│   ├── CMakeLists.txt      Registro del componente y sus dependencias
+│   └── hello_world_main.c  Inicialización, ADC, I²C, OLED y procesamiento
+├── .devcontainer/          Entorno ESP-IDF reproducible
+└── .vscode/                Configuración del entorno de desarrollo
+```
+
+## Arquitectura del firmware
+
+`app_main()` inicializa el bus I²C, la pantalla OLED, el ADC y el botón BOO​T. Después ejecuta un bucle continuo que:
+
+1. Detecta cambios de escala con el botón.
+2. Realiza muestreo continuo o captura disparada.
+3. Convierte las lecturas del ADC a milivoltios.
+4. Mide amplitud y frecuencia cuando corresponde.
+5. Dibuja la cuadrícula y la forma de onda en el framebuffer SSD1306.
+6. Envía el contenido completo de la pantalla mediante I²C.
+
+Las escalas mayores o iguales a `30 ms` usan `roll_step()`; las menores usan `triggered_step()` con muestreo temporal activo y detección de flancos ascendentes.
+
+## Solución de problemas
+
+### No se reconoce el ESP32-S3
+
+- Comprueba el cable USB y prueba con otro puerto.
+- Sustituye `PORT` por el puerto serie real.
+- Mantén presionado BOOT mientras conectas o reinicias si la placa lo requiere.
+
+### Fallo al cargar el firmware
+
+- Verifica que no haya otro programa usando el puerto serie.
+- Baja la velocidad de transferencia o reinicia la placa.
+- Ejecuta `idf.py set-target esp32s3` antes de construir.
+
+### No aparece imagen en la OLED
+
+- Confirma que SDA esté en GPIO8 y SCL en GPIO9.
+- Comprueba la alimentación y masa compartida.
+- Verifica que la pantalla use dirección `0x3C`.
+- Prueba una velocidad I²C inferior si hay problemas de cableado.
+
+## Créditos y licencias
+
+Este proyecto es una aplicación basada en **ESP-IDF** y utiliza componentes proporcionados por Espressif. El repositorio no declara actualmente una licencia; se recomienda añadir una antes de redistribuir o reutilizar el código con fines comerciales.
